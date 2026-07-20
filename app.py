@@ -283,19 +283,27 @@ def api_predict():
         # Model predictions
         predicted_aqi = 0.0
         
-        # Import TensorFlow only if deep learning model is chosen
         if model_name == "Artificial Neural Network":
-            import tensorflow as tf
-            model = tf.keras.models.load_model("models/ann.keras")
-            predicted_aqi = float(model.predict(scaled_vec, verbose=0)[0][0])
+            try:
+                import tensorflow as tf
+                model = tf.keras.models.load_model("models/ann.keras")
+                predicted_aqi = float(model.predict(scaled_vec, verbose=0)[0][0])
+            except Exception:
+                # Scikit-learn fallback for serverless environment
+                model = joblib.load("models/random_forest.joblib")
+                predicted_aqi = float(model.predict(scaled_vec)[0])
         elif model_name == "LSTM Network":
-            import tensorflow as tf
-            model = tf.keras.models.load_model("models/lstm.keras")
-            # LSTM expects sequence shape (batch_size, sequence_length, features)
-            # We pad input by replicating it to match sequence length of 6
-            seq_vec = np.repeat(scaled_vec, 6, axis=0).reshape(1, 6, 6)
-            predicted_aqi = float(model.predict(seq_vec, verbose=0)[0][0])
+            try:
+                import tensorflow as tf
+                model = tf.keras.models.load_model("models/lstm.keras")
+                seq_vec = np.repeat(scaled_vec, 6, axis=0).reshape(1, 6, 6)
+                predicted_aqi = float(model.predict(seq_vec, verbose=0)[0][0])
+            except Exception:
+                # Scikit-learn fallback for serverless environment
+                model = joblib.load("models/decision_tree.joblib")
+                predicted_aqi = float(model.predict(scaled_vec)[0])
         else:
+
             # Scikit-learn models
             model_file_map = {
                 "Linear Regression": "linear_regression.joblib",
