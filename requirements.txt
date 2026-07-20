@@ -2,8 +2,6 @@ flask
 pandas
 numpy
 scikit-learn
-tensorflow-cpu
 joblib
-h5py
 gunicorn
 flask-cors
