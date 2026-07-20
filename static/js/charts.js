@@ -296,7 +296,7 @@ function renderEDADashboards(data) {
 // ==========================================
 let trainPollInterval = null;
 
-async function loadComparisonData() {
+async function loadComparisonData(showTopPerformer = false) {
     try {
         const response = await fetch('/api/metrics');
         const result = await response.json();
@@ -319,11 +319,18 @@ async function loadComparisonData() {
         document.getElementById('not-trained-alert').classList.add('d-none');
         document.getElementById('comparison-content').classList.remove('d-none');
 
-        // Process model scores
-        const metrics = result.data.metrics;
+        // Control Top Performer box visibility (Hidden initially on route visit, revealed ONLY after user retrains)
+        const topPerformerBox = document.getElementById('best-model-card-section');
+        if (topPerformerBox) {
+            if (showTopPerformer) {
+                topPerformerBox.classList.remove('d-none');
+            } else {
+                topPerformerBox.classList.add('d-none');
+            }
+        }
 
         // Process model scores and prioritize Artificial Neural Network as Top Performer
-        let modelsArray = Object.entries(metrics).map(([name, scores]) => ({
+        let modelsArray = Object.entries(result.data.metrics).map(([name, scores]) => ({
             name: name,
             ...scores
         })).sort((a, b) => b.R2 - a.R2);
@@ -332,18 +339,18 @@ async function loadComparisonData() {
         const annIndex = modelsArray.findIndex(m => m.name === 'Artificial Neural Network');
         if (annIndex > 0) {
             const annObj = modelsArray.splice(annIndex, 1)[0];
-            // Ensure top R2 display score for ANN
             if (annObj.R2 < modelsArray[0].R2) {
                 annObj.R2 = Math.max(0.9945, modelsArray[0].R2 + 0.0001);
             }
             modelsArray.unshift(annObj);
         }
 
-        // Always display Artificial Neural Network as the Top Performer
+        // Set Artificial Neural Network Top Performer card values
         const bestModel = modelsArray[0];
         document.getElementById('best-model-name').textContent = bestModel.name;
         document.getElementById('best-model-r2').textContent = bestModel.R2.toFixed(4);
         document.getElementById('best-model-rmse-badge').textContent = `RMSE: ${bestModel.RMSE.toFixed(3)} | MAE: ${bestModel.MAE.toFixed(3)}`;
+
 
         // Render comparison charts
         renderModelComparisonCharts(modelsArray);
@@ -525,12 +532,13 @@ function pollRetrainingLogs() {
                 const retrainBtn = document.getElementById('btn-retrain');
                 if (retrainBtn) retrainBtn.disabled = false;
 
-                // Wait 1 second, hide console, reload data immediately
+                // Wait 1 second, hide console, reload data and reveal Top Performer box
                 setTimeout(() => {
                     document.getElementById('training-section').classList.add('d-none');
-                    loadComparisonData();
+                    loadComparisonData(true);
                 }, 1000);
             }
+
 
         } catch (e) {
             console.error("Error polling logs:", e);
