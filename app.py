@@ -1,11 +1,22 @@
 import os
+import logging
+import warnings
 import json
 import subprocess
 import threading
+
+# Suppress all TensorFlow, Keras, Abseil & Python warnings for 100% clean terminal output
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+warnings.filterwarnings('ignore')
+
 import numpy as np
 import pandas as pd
 from flask import Flask, render_template, jsonify, request, redirect, url_for
 import joblib
+
+
 try:
     from flask_cors import CORS
     has_cors = True

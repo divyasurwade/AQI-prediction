@@ -1,8 +1,16 @@
 import os
+import warnings
 import json
+
+# Suppress noisy TensorFlow & Keras log outputs in terminal
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+warnings.filterwarnings('ignore')
+
 import numpy as np
 import pandas as pd
 import joblib
+
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline
