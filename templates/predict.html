@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block title %}Real-Time AQI Predictor & Health Intelligence{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="display-5 mb-2"><i class="bi bi-cpu text-primary me-2"></i>Real-Time AQI Predictor</h1>
+            <p class="text-muted">Interactively adjust pollutant levels to simulate real-time air quality predictions using trained Artificial Neural Networks, LSTMs, and Regression models.</p>
+            
+            <!-- Quick Presets -->
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <span class="text-secondary align-self-center small fw-bold me-2"><i class="bi bi-magic me-1"></i>Quick Presets:</span>
+                <button type="button" class="btn btn-sm btn-premium-outline py-1 px-3" onclick="applyPreset(20, 40, 15, 10, 0.4, 30)">
+                    <i class="bi bi-tree text-success me-1"></i>Clean Countryside
+                </button>
+                <button type="button" class="btn btn-sm btn-premium-outline py-1 px-3" onclick="applyPreset(65, 120, 45, 25, 1.2, 55)">
+                    <i class="bi bi-car-front text-warning me-1"></i>Urban Traffic
+                </button>
+                <button type="button" class="btn btn-sm btn-premium-outline py-1 px-3" onclick="applyPreset(180, 260, 95, 60, 2.5, 90)">
+                    <i class="bi bi-factory text-danger me-1"></i>Industrial Heavy
+                </button>
+                <button type="button" class="btn btn-sm btn-premium-outline py-1 px-3" onclick="applyPreset(350, 480, 180, 120, 4.5, 140)">
+                    <i class="bi bi-exclamation-octagon text-danger me-1"></i>Severe Smog
+                </button>
+            </div>
+            <div class="bg-primary mt-3" style="width: 80px; height: 4px; border-radius: 2px;"></div>
+        </div>
+    </div>
+
+    <!-- Models Not Trained Alert -->
+    <div id="not-trained-alert" class="alert alert-warning d-none" role="alert">
+        <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i>Models Not Trained</h4>
+        <p>The prediction engine cannot start because the models have not been trained yet.</p>
+        <hr>
+        <p class="mb-0">Go to the <a href="{{ url_for('comparison') }}" class="alert-link">Model Evaluation Page</a> to train models.</p>
+    </div>
+
+    <div id="predictor-content" class="d-none">
+        <div class="row g-4">
+            <!-- Left Column: Inputs Form -->
+            <div class="col-lg-6">
+                <div class="card-premium h-100">
+                    <div class="card-header-premium">
+                        <h5 class="mb-0"><i class="bi bi-sliders text-primary me-2"></i>Input Pollutant Concentrations</h5>
+                    </div>
+                    <div class="card-body-premium">
+                        <form id="prediction-form">
+                            <!-- Model Selector -->
+                            <div class="mb-4">
+                                <label for="select-model" class="form-label font-weight-bold" style="font-weight: 600;">ML / DL Model Algorithm</label>
+                                <select class="form-select" id="select-model">
+                                    <option value="Artificial Neural Network" selected>(Recommended) Deep Learning ANN</option>
+                                    <option value="LSTM Network">LSTM Deep Learning</option>
+                                    <option value="Random Forest Regression">Random Forest Ensemble</option>
+                                    <option value="Support Vector Regression">Support Vector Regression (SVR)</option>
+                                    <option value="Decision Tree Regression">Decision Tree Regressor</option>
+                                    <option value="Linear Regression">Linear Regression</option>
+                                    <option value="Polynomial Regression">Polynomial Regression</option>
+                                    <option value="Ridge Regression">Ridge Regression</option>
+                                    <option value="Lasso Regression">Lasso Regression</option>
+                                </select>
+                            </div>
+
+                            <!-- PM2.5 -->
+                            <div class="slider-container">
+                                <div class="slider-label-row">
+                                    <span class="slider-name">PM2.5 (Fine Particles) <span class="text-muted small">(&micro;g/m&sup3;)</span></span>
+                                    <input type="number" id="num-pm25" class="form-control form-control-sm text-center font-weight-bold" style="width: 75px;" value="35" min="0" max="500">
+                                </div>
+                                <input type="range" class="form-range" id="range-pm25" min="0" max="500" value="35">
+                                <div class="d-flex justify-content-between text-muted small"><span class="small">0 (Good)</span><span class="small">500 (Severe)</span></div>
+                            </div>
+
+                            <!-- PM10 -->
+                            <div class="slider-container">
+                                <div class="slider-label-row">
+                                    <span class="slider-name">PM10 (Coarse Particles) <span class="text-muted small">(&micro;g/m&sup3;)</span></span>
+                                    <input type="number" id="num-pm10" class="form-control form-control-sm text-center font-weight-bold" style="width: 75px;" value="75" min="0" max="500">
+                                </div>
+                                <input type="range" class="form-range" id="range-pm10" min="0" max="500" value="75">
+                                <div class="d-flex justify-content-between text-muted small"><span class="small">0</span><span class="small">500</span></div>
+                            </div>
+
+                            <!-- NO2 -->
+                            <div class="slider-container">
+                                <div class="slider-label-row">
+                                    <span class="slider-name">NO2 (Nitrogen Dioxide) <span class="text-muted small">(&micro;g/m&sup3;)</span></span>
+                                    <input type="number" id="num-no2" class="form-control form-control-sm text-center font-weight-bold" style="width: 75px;" value="32" min="0" max="400">
+                                </div>
+                                <input type="range" class="form-range" id="range-no2" min="0" max="400" value="32">
+                                <div class="d-flex justify-content-between text-muted small"><span class="small">0</span><span class="small">400</span></div>
+                            </div>
+
+                            <!-- SO2 -->
+                            <div class="slider-container">
+                                <div class="slider-label-row">
+                                    <span class="slider-name">SO2 (Sulfur Dioxide) <span class="text-muted small">(&micro;g/m&sup3;)</span></span>
+                                    <input type="number" id="num-so2" class="form-control form-control-sm text-center font-weight-bold" style="width: 75px;" value="15" min="0" max="400">
+                                </div>
+                                <input type="range" class="form-range" id="range-so2" min="0" max="400" value="15">
+                                <div class="d-flex justify-content-between text-muted small"><span class="small">0</span><span class="small">400</span></div>
+                            </div>
+
+                            <!-- CO -->
+                            <div class="slider-container">
+                                <div class="slider-label-row">
+                                    <span class="slider-name">CO (Carbon Monoxide) <span class="text-muted small">(mg/m&sup3;)</span></span>
+                                    <input type="number" id="num-co" class="form-control form-control-sm text-center font-weight-bold" style="width: 75px;" value="0.8" step="0.1" min="0" max="35">
+                                </div>
+                                <input type="range" class="form-range" id="range-co" min="0" max="35" step="0.1" value="0.8">
+                                <div class="d-flex justify-content-between text-muted small"><span class="small">0</span><span class="small">35</span></div>
+                            </div>
+
+                            <!-- O3 -->
+                            <div class="slider-container">
+                                <div class="slider-label-row">
+                                    <span class="slider-name">O3 (Ozone) <span class="text-muted small">(&micro;g/m&sup3;)</span></span>
+                                    <input type="number" id="num-o3" class="form-control form-control-sm text-center font-weight-bold" style="width: 75px;" value="45" min="0" max="300">
+                                </div>
+                                <input type="range" class="form-range" id="range-o3" min="0" max="300" value="45">
+                                <div class="d-flex justify-content-between text-muted small"><span class="small">0</span><span class="small">300</span></div>
+                            </div>
+
+                            <button type="submit" class="btn btn-premium w-100 py-3 mt-2 fs-5">
+                                <i class="bi bi-cpu me-2"></i>Calculate & Predict AQI
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Predictions Results -->
+            <div class="col-lg-6">
+                <div class="card-premium h-100 text-center" id="result-card">
+                    <div class="card-header-premium text-start">
+                        <h5 class="mb-0"><i class="bi bi-speedometer2 text-primary me-2"></i>AQI Prediction Output</h5>
+                    </div>
+                    
+                    <div class="card-body-premium d-flex flex-column justify-content-center h-100 align-items-center">
+                        
+                        <!-- Placeholder State -->
+                        <div id="result-placeholder" class="py-5">
+                            <i class="bi bi-wind text-muted animate-pulse-slow" style="font-size: 4.5rem;"></i>
+                            <h4 class="mt-3 text-muted">Ready for Simulation</h4>
+                            <p class="text-muted px-4 small">Adjust pollutant concentrations on the left or click a Quick Preset, then press <strong>Calculate & Predict AQI</strong>.</p>
+                        </div>
+                        
+                        <!-- Active Result State -->
+                        <div id="result-active" class="d-none w-100">
+                            <!-- Circular SVG Gauge -->
+                            <div class="gauge-wrapper mb-3">
+                                <svg class="gauge-svg" viewBox="0 0 200 200">
+                                    <circle class="gauge-background" cx="100" cy="100" r="80"></circle>
+                                    <circle class="gauge-fill" id="gauge-progress" cx="100" cy="100" r="80"></circle>
+                                </svg>
+                                <div class="gauge-center-content">
+                                    <div class="gauge-number" id="result-aqi">0</div>
+                                    <div class="gauge-category-label">AQI INDEX</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Category Badge -->
+                            <div class="mb-4">
+                                <span class="aqi-badge px-4 py-2 fs-5" id="result-category">Good</span>
+                            </div>
+                            
+                            <!-- Confidence Level Progress -->
+                            <div class="mb-4 text-start px-2">
+                                <div class="d-flex justify-content-between mb-1">
+                                    <span class="fw-semibold small">Prediction Confidence Level</span>
+                                    <span id="result-confidence" class="fw-bold text-primary">85%</span>
+                                </div>
+                                <div class="progress" style="height: 8px;">
+                                    <div id="progress-confidence" class="progress-bar bg-primary progress-bar-striped" role="progressbar" style="width: 85%;"></div>
+                                </div>
+                                <small class="text-muted mt-1 d-block" style="font-size: 0.75rem;">Calculated via model variance & distance from standard distribution.</small>
+                            </div>
+                            
+                            <!-- Recommendation Box -->
+                            <div class="alert text-start d-flex align-items-start gap-3 p-3 mx-1 mb-4" id="result-recommendation-box" role="alert">
+                                <i class="bi" id="result-rec-icon" style="font-size: 1.8rem; line-height: 1;"></i>
+                                <div>
+                                    <h6 class="alert-heading mb-1 fw-bold">Health & Safety Guidance</h6>
+                                    <p class="mb-0 small" id="result-recommendation-text">Health warning text details.</p>
+                                </div>
+                            </div>
+
+                            <div class="text-muted small">
+                                Algorithm Engine: <strong id="result-model-used" class="text-main">-</strong>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<script>
+    function applyPreset(pm25, pm10, no2, so2, co, o3) {
+        document.getElementById('num-pm25').value = pm25;
+        document.getElementById('range-pm25').value = pm25;
+        
+        document.getElementById('num-pm10').value = pm10;
+        document.getElementById('range-pm10').value = pm10;
+        
+        document.getElementById('num-no2').value = no2;
+        document.getElementById('range-no2').value = no2;
+        
+        document.getElementById('num-so2').value = so2;
+        document.getElementById('range-so2').value = so2;
+        
+        document.getElementById('num-co').value = co;
+        document.getElementById('range-co').value = co;
+        
+        document.getElementById('num-o3').value = o3;
+        document.getElementById('range-o3').value = o3;
+        
+        // Auto trigger submit
+        const form = document.getElementById('prediction-form');
+        if (form) form.dispatchEvent(new Event('submit'));
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        initPredictorPage();
+    });
+</script>
+{% endblock %}

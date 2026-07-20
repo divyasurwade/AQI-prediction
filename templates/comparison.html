@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}Model Evaluation & Performance Comparison{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="row mb-4 align-items-center">
+        <div class="col-lg-8">
+            <h1 class="display-5 mb-2"><i class="bi bi-trophy text-primary me-2"></i>Model Evaluation & Comparison</h1>
+            <p class="text-muted">Compare accuracy, errors, and R² benchmark scores across regression, ensemble machine learning, and neural network algorithms.</p>
+            <div class="bg-primary" style="width: 80px; height: 4px; border-radius: 2px;"></div>
+        </div>
+        <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+            <button id="btn-retrain" class="btn btn-premium">
+                <i class="bi bi-cpu me-2"></i>Train Models
+            </button>
+        </div>
+    </div>
+
+    <!-- Live Training Logs Terminal Console -->
+    <div id="training-section" class="row d-none mb-4 animate-pulse-slow">
+        <div class="col-12">
+            <div class="card-premium border-primary">
+                <div class="card-body-premium">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h5 class="text-primary mb-0"><i class="bi bi-cpu-fill me-2"></i>Model Training Console</h5>
+                        <div id="training-status-badge" class="badge bg-warning text-dark px-3 py-2">
+                            <i class="bi bi-gear-wide-connected me-1"></i>Training in progress...
+                        </div>
+                    </div>
+                    <div class="terminal-window">
+                        <div class="terminal-header">
+                            <span class="terminal-title">train_pipeline.log</span>
+                        </div>
+                        <div id="terminal-logs" class="terminal-body">
+                            Initializing training environment...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Models Not Trained Alert -->
+    <div id="not-trained-alert" class="alert alert-warning d-none" role="alert">
+        <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill me-2"></i>Models Not Trained Yet</h4>
+        <p>No model checkpoints or evaluation benchmarks were found. The results section is hidden until models are trained.</p>
+        <hr>
+        <p class="mb-0">Click the <strong>"Train Models"</strong> button above to run training and reveal the performance benchmarks.</p>
+    </div>
+
+    <div id="comparison-content" class="d-none">
+        <!-- Top Performer Result Section (Revealed only after successful training) -->
+        <div class="row mb-4" id="best-model-card-section">
+            <div class="col-12">
+                <div class="card-premium p-4 text-white"
+                    style="background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 70%, var(--secondary) 100%);">
+                    <div class="row align-items-center">
+                        <div class="col-md-2 text-center text-md-start mb-3 mb-md-0">
+                            <i class="bi bi-trophy-fill text-warning" style="font-size: 4.5rem;"></i>
+                        </div>
+                        <div class="col-md-6 mb-3 mb-md-0">
+                            <span class="badge bg-warning text-dark mb-2 fw-bold">TOP PERFORMER</span>
+                            <h2 class="text-white" id="best-model-name">-</h2>
+                            <p class="mb-0 text-white-50 small">Achieved the highest R² Score and lowest error rate on test holdout data.</p>
+                        </div>
+                        <div class="col-md-4 text-center text-md-end border-md-start border-white-50 ps-md-4">
+                            <h6 class="text-uppercase text-white-50 mb-1 small">R² Score</h6>
+                            <h1 class="display-4 font-weight-bold text-white mb-0" id="best-model-r2">-</h1>
+                            <span class="badge bg-success" id="best-model-rmse-badge">RMSE: -</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Evaluation Charts Section -->
+        <div class="row g-4 mb-4">
+            <div class="col-lg-6">
+                <div class="card-premium h-100">
+                    <div class="card-header-premium">
+                        <h5 class="mb-0"><i class="bi bi-graph-up text-primary me-2"></i>R² Score Comparison (Higher is Better)</h5>
+                    </div>
+                    <div class="card-body-premium">
+                        <div style="height: 320px; position: relative;">
+                            <canvas id="chart-r2-compare"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card-premium h-100">
+                    <div class="card-header-premium">
+                        <h5 class="mb-0"><i class="bi bi-graph-down text-primary me-2"></i>Error Metrics Comparison (Lower is Better)</h5>
+                    </div>
+                    <div class="card-body-premium">
+                        <div style="height: 320px; position: relative;">
+                            <canvas id="chart-error-compare"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Ranking Table Dashboard -->
+        <div class="row">
+            <div class="col-12">
+                <div class="card-premium">
+                    <div class="card-header-premium">
+                        <h5 class="mb-0"><i class="bi bi-list-ol text-primary me-2"></i>Model Performance Leaderboard</h5>
+                    </div>
+                    <div class="card-body-premium">
+                        <div class="table-responsive-wrapper">
+                            <table class="table table-hover table-premium mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Rank</th>
+                                        <th>Algorithm</th>
+                                        <th>MAE</th>
+                                        <th>MSE</th>
+                                        <th>RMSE</th>
+                                        <th>R² Score</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="ranking-table-body">
+                                    <!-- Dynamic ranking rows -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        loadComparisonData();
+    });
+</script>
+{% endblock %}
