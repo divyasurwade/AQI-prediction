@@ -23,22 +23,12 @@ def build_forecaster_model(lookback=24):
 def train_forecaster(df, lookback=24):
     print("\nTraining LSTM Forecasting Model...")
     
-    # 1. Scale AQI values
+    # 1. Scale AQI values overall for consistency
     scaler = MinMaxScaler(feature_range=(0, 1))
-    
-    # We will train city by city and combine sequences
-    X_list, y_list = [], []
-    
-    for city in df['City'].unique():
-        city_df = df[df['City'] == city].sort_values(by='Timestamp')
-        aqi_vals = city_df['AQI'].values.reshape(-1, 1)
-        
-        # Fit scaler on each city's data or overall. Overall is better for consistency.
-        # So let's fit scaler on the whole dataset's AQI values first
-    
     aqi_all = df['AQI'].values.reshape(-1, 1)
     scaler.fit(aqi_all)
     
+    X_list, y_list = [], []
     for city in df['City'].unique():
         city_df = df[df['City'] == city].sort_values(by='Timestamp')
         aqi_scaled = scaler.transform(city_df['AQI'].values.reshape(-1, 1))
@@ -60,9 +50,7 @@ def train_forecaster(df, lookback=24):
     model = build_forecaster_model(lookback)
     
     # Train the forecaster
-    import tensorflow as tf
     model.fit(X_train, y_train, epochs=4, batch_size=4096, validation_split=0.1, verbose=0)
-
     
     # Save the model and scaler
     os.makedirs("models", exist_ok=True)
@@ -74,17 +62,17 @@ def train_forecaster(df, lookback=24):
 def forecast_next_hours(city_name, df, steps=24, lookback=24):
     try:
         import tensorflow as tf
+        if not os.path.exists("models/forecast_lstm.keras") or not os.path.exists("models/forecast_scaler.joblib"):
+            raise FileNotFoundError("Forecast model or scaler file missing")
+            
         model = tf.keras.models.load_model("models/forecast_lstm.keras")
         scaler = joblib.load("models/forecast_scaler.joblib")
         
-        # Get the last lookback hours for the specified city
         city_df = df[df['City'] == city_name].sort_values(by='Timestamp')
         if len(city_df) < lookback:
             return None
             
         last_aqis = city_df['AQI'].values[-lookback:].reshape(-1, 1)
-        
-        # Scale input
         scaled_seq = scaler.transform(last_aqis)
         
         predictions = []
@@ -105,7 +93,7 @@ def forecast_next_hours(city_name, df, steps=24, lookback=24):
             return [120] * steps
         recent = city_df['AQI'].values[-lookback:]
         base = float(recent[-1])
-        trend = (recent[-1] - recent[0]) / float(lookback)
+        trend = (recent[-1] - recent[0]) / float(max(1, len(recent)))
         preds = []
         for i in range(1, steps + 1):
             val = base + (trend * i * 0.5) + (np.sin(i / 3.0) * 3.0)
