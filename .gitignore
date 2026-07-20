@@ -16,3 +16,5 @@ Thumbs.db
 
 # Training logs
 models/train.log
+
+.vercel

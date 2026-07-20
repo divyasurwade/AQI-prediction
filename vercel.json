@@ -1,8 +1,9 @@
 {
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/api/index.py"
+  "services": {
+    "aqi-comparative-analysis": {
+      "root": ".",
+      "runtime": "python",
+      "entrypoint": "api/index.py"
     }
-  ]
+  }
 }
