@@ -47,11 +47,12 @@ def prepare_data_for_all_models(df, scaler, lookback=6):
 
 def build_ann_model():
     from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import Dense, Dropout
+    from tensorflow.keras.layers import Input, Dense, Dropout
     from tensorflow.keras.optimizers import Adam
     
     model = Sequential([
-        Dense(128, activation='relu', input_shape=(6,)),
+        Input(shape=(6,)),
+        Dense(128, activation='relu'),
         Dense(64, activation='relu'),
         Dense(32, activation='relu'),
         Dense(1)
@@ -61,16 +62,21 @@ def build_ann_model():
 
 def build_lstm_model(lookback=6):
     from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import LSTM, Dense, Dropout
+    from tensorflow.keras.layers import Input, LSTM, Dense, Dropout
     from tensorflow.keras.optimizers import Adam
     
     model = Sequential([
-        LSTM(64, activation='tanh', input_shape=(lookback, 6), return_sequences=False),
-        Dense(32, activation='relu'),
+        Input(shape=(lookback, 6)),
+        LSTM(64, activation='tanh', return_sequences=True),
+        Dropout(0.1),
+        LSTM(32, activation='tanh', return_sequences=False),
+        Dropout(0.1),
+        Dense(16, activation='relu'),
         Dense(1)
     ])
     model.compile(optimizer=Adam(learning_rate=0.005), loss='mse')
     return model
+
 
 def main():
     print("==================================================")

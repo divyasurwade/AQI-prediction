@@ -6,11 +6,12 @@ import joblib
 
 def build_forecaster_model(lookback=24):
     from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import LSTM, Dense, Dropout
+    from tensorflow.keras.layers import Input, LSTM, Dense, Dropout
     from tensorflow.keras.optimizers import Adam
     
     model = Sequential([
-        LSTM(64, activation='tanh', input_shape=(lookback, 1), return_sequences=True),
+        Input(shape=(lookback, 1)),
+        LSTM(64, activation='tanh', return_sequences=True),
         Dropout(0.1),
         LSTM(32, activation='tanh', return_sequences=False),
         Dropout(0.1),
@@ -19,6 +20,7 @@ def build_forecaster_model(lookback=24):
     ])
     model.compile(optimizer=Adam(learning_rate=0.001), loss='mse')
     return model
+
 
 def train_forecaster(df, lookback=24):
     print("\nTraining LSTM Forecasting Model...")
